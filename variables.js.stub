@@ -1,0 +1,6 @@
+// The application depends on a file named variables.js
+// This is a stub for it.
+
+module.exports = {
+  SLACK_TOKEN: 'Token to verify if this request came from Slack'
+};
