@@ -6,6 +6,7 @@
   var variables = require('./variables.js');
 
   var echo = require('./commands/echo.js');
+  var analyze = require('./commands/analyze.js');
   var utils = require('./commands/utils.js');
 
   var app = express();
@@ -19,6 +20,7 @@
       var command = slackRequest.body.text.substr(slackRequest.body.trigger_word.length).replace(/\s+/g, ' ').trim();
 
       var parsed = false;
+      parsed = parsed || utils.parseCommand(slackRequest, slackResponse, command, /^analyze (.*)$/, analyze);
       parsed = parsed || utils.parseCommand(slackRequest, slackResponse, command, /^(.*)$/, echo);
     }
   });
