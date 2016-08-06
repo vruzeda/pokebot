@@ -20,7 +20,7 @@
 
   function parsePokemon(params) {
     var index = gamedata.findPokemonIndexByName(params.name);
-    if (index) {
+    if (index !== undefined) {
       var pokemon = new Pokemon(index, params.cp, params.hp, params.dustPrice, params.poweredUp, params.trainerLevel);
       return pokemon;
     }
