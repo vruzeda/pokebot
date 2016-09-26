@@ -1,8 +1,8 @@
 (function() {
 
   var utils = require('./utils.js');
-  var gamedata = require('./gamedata.js');
-  var Pokemon = require('./pokemon.js');
+  var gamedata = require('../integrations/analyze/gamedata.js');
+  var Pokemon = require('../integrations/analyze/pokemon.js');
 
   function parseParameters(command) {
     var input = command.match(/^(\w+) (\d+) (\d+) (\d+) ([nyNY]) (\d+)$/);
@@ -26,11 +26,9 @@
     }
   }
 
-  function analyze(slackRequest, slackResponse, command) {
+  function analyze(callback, command) {
     if (command === "help") {
-      utils.postToSlack(slackResponse,
-        "Here's the data I need to analyze your Pokémon:\n" +
-        "```  analyze PokemonName CP HP DustPrice PoweredUp?(Y/N) TrainerLevel```");
+      callback("Here's the data I need to analyze your Pokémon:\n```  analyze PokemonName CP HP DustPrice PoweredUp?(Y/N) TrainerLevel```");
       return;
     }
 
@@ -39,7 +37,7 @@
       var pokemon = parsePokemon(params);
       if (pokemon) {
         var message = "";
-        message += "Hmm... Here's my analysis of your *" + pokemon.name + "*, " + slackRequest.body.user_name + ":\n";
+        message += "Hmm... Here's my analysis of your *" + pokemon.name + "*:\n";
         if (pokemon.hasNoPossibleIVs()) {
           message += "I have absolutely no clue! Maybe the data you provided is incorrect?\n";
 
@@ -64,16 +62,20 @@
           message += "with perfection rate ranging from " + pokemon.getIVPerfectionMinStr() + " to " + pokemon.getIVPerfectionMaxStr() + ".\n";
         }
         message += "That is all. I hope this analysis was useful for you!";
-        utils.postToSlack(slackResponse, message);
+        callback(message);
 
       } else {
-        utils.postToSlack(slackResponse, "I'm afraid I never heard of a Pokémon called " + params.name + ", " + slackRequest.body.user_name + "!");
+        callback("I'm afraid I never heard of a Pokémon called " + params.name + "!");
       }
     } else {
-      utils.postToSlack(slackResponse, "Sorry, but I'm not sure what you mean, " + slackRequest.body.user_name + ".");
+      callback("Sorry, but I'm not sure what you mean.");
     }
   }
 
-  module.exports = analyze;
+  module.exports = {
+    pattern: /^analyze (.*)$/,
+    handler: analyze,
+    description: '*prof.oak analyze* : analyzes your pokemon\'s IVs (try *analyze help* for more details)'
+  };
 
 })();
