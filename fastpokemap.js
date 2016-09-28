@@ -1,7 +1,7 @@
 // This script should be run the https://fastpokemap.se page from your browser's console.
 // You have to declare a SLACK_INCOMING_WEBHOOK_INTEGRATION_URL also.
 
-var SLACK_INCOMING_WEBHOOK_INTEGRATION_URL = 'DEFINE IT HERE!';
+var SLACK_INCOMING_WEBHOOK_INTEGRATION_URL = SLACK_INCOMING_WEBHOOK_INTEGRATION_URL || 'DEFINE IT HERE!';
 
 var wantedList = {
   office : [
