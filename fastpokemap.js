@@ -470,10 +470,7 @@ var coords = {
   shopping : [-22.863511940386083, -47.02307224273682],
 };
 
-var encounterList = {
-  office   : [],
-  shopping : []
-};
+var encounterList = {};
 
 var nests = {
   ':catraca:'     : [-22.864658, -47.022038],
@@ -555,6 +552,8 @@ function processPokemons(location, result) {
         wanted = true;
         tag = '';
       }
+
+      encounterList[location] = encounterList[location] || [];
 
       if (wanted && encounterList[location].indexOf(spawn.encounter_id) == -1) {
         encounterList[location].push(spawn.encounter_id);
