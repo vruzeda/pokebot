@@ -312,7 +312,7 @@ var wantedList = {
   ],
   all: [
     //"BULBASAUR",
-    "IVYSAUR",
+    // "IVYSAUR",
     "VENUSAUR",
     // "CHARMANDER",
     "CHARMELEON",
@@ -385,7 +385,7 @@ var wantedList = {
     //"TENTACOOL",
     //"TENTACRUEL",
     //"GEODUDE",
-    //"GRAVELER",
+    "GRAVELER",
     "GOLEM",
     //"PONYTA",
     //"RAPIDASH",
