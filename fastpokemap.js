@@ -470,7 +470,7 @@ var coords = {
   shopping : [-22.863511940386083, -47.02307224273682],
 };
 
-var encounterList = {};
+var encounterList = [];
 
 var nests = {
   ':catraca:'     : [-22.864658, -47.022038],
@@ -554,14 +554,12 @@ function processPokemons(location, result) {
         tag = '';
       }
 
-      encounterList[location] = encounterList[location] || [];
-
-      if (wanted && encounterList[location].indexOf(spawn.encounter_id) == -1) {
-        encounterList[location].push(spawn.encounter_id);
+      if (wanted && encounterList.indexOf(spawn.encounter_id) == -1) {
+        encounterList.push(spawn.encounter_id);
         (function(location, encounterId, lifespam) {
           setTimeout(function() {
-            var index = encounterList[location].indexOf(encounterId);
-            encounterList[location].splice(index, 1);
+            var index = encounterList.indexOf(encounterId);
+            encounterList.splice(index, 1);
           }, lifespam);
         })(location, spawn.encounter_id, spawn.expiration_timestamp_ms - Date.now());
 
