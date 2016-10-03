@@ -491,123 +491,108 @@ var nests = {
 
 function scanLocations() {
   for (var location in coords) {
-    scan(location);
+    (function(location) {
+      // Run now!
+      scanLocation(location);
+
+      // Schedule for the future!
+      setInterval(function() {
+        scanLocation(location);
+      }, 2 * 60 * 1000);
+    })(location);
   }
 }
 
-function scan(location) {
+function scanLocation(location) {
   console.log("### Scanning " + location);
-
-  var api = "https://api.fastpokemap.se/?key=allow-all&ts=0&lat=" + coords[location][0] + "&lng=" + coords[location][1];
-
-  $.ajax({dataType: "json", url: api, timeout: 50000}).done(function(data) {
-    if (data.result) {
-      processPokemons(location, data.result);
-    } else {
-      scan(location);
-    }
-  }).fail(function() {
-    scan(location);
-  });
+  getPokemon(coords[location][0], coords[location][1]);
+  console.log("### Wait 2 minutes");
 }
 
-function processPokemons(location, result) {
-  console.log("### Got " + result.length + " results for " + location);
+function addPokemonToMap(spawn) {
+  // Parse the spawn results and get some useful info.
+  if (spawn.spawn_point_id != undefined) {
+    if (spawn.expiration_timestamp_ms <= 0) {
+      spawn.expiration_timestamp_ms = Date.now() + 930000;
+    }
+    spawn.type = "spawn";
+  } else if (spawn.lure_info != undefined) {
+    spawn.encounter_id = spawn.lure_info.encounter_id;
+    spawn.pokemon_id = spawn.lure_info.active_pokemon_id;
+    spawn.expiration_timestamp_ms = spawn.lure_info.lure_expires_timestamp_ms;
+    spawn.type = "lure";
+  } else {
+    spawn.type = "nearby";
+  }
 
-  for (var i = 0; i < result.length; i++) {
-    var spawn = result[i];
+  var lifespam = spawn.expiration_timestamp_ms - Date.now();
 
-    // Parse the spawn results and get some useful info.
-    if (spawn.spawn_point_id != undefined) {
-      if (spawn.expiration_timestamp_ms <= 0) {
-        spawn.expiration_timestamp_ms = Date.now() + 930000;
+  if (lifespam > 0) {
+    var location = closestLocation(coords, spawn);
+
+    var wanted = false;
+    var tag;
+
+    if (wantedList.all.indexOf(spawn.pokemon_id) >= 0) {
+      wanted = true;
+      tag = ' <!here>';
+    } else if (wantedList[location].indexOf(spawn.pokemon_id) >= 0) {
+      wanted = true;
+      tag = '';
+    }
+
+    if (wanted && encounterList.indexOf(spawn.encounter_id) == -1) {
+      encounterList.push(spawn.encounter_id);
+      (function(location, encounterId, lifespam) {
+        setTimeout(function() {
+          var index = encounterList.indexOf(encounterId);
+          encounterList.splice(index, 1);
+        }, lifespam);
+      })(location, spawn.encounter_id, spawn.expiration_timestamp_ms - Date.now());
+
+      var emoji = ":pkm-" + spawn.pokemon_id.toLowerCase() + ":";
+      emoji = emoji.replace(/nidoran_female/, "nidoranf");
+      emoji = emoji.replace(/nidoran_male/, "nidoranm");
+      emoji = emoji.replace(/mr_mime/, "mrmime");
+
+      var closestNest = closestLocation(nests, spawn);
+
+      var msg = "<https://fastpokemap.se/#" + spawn.latitude + "," + spawn.longitude + "|" + emoji + "> found ";
+      if (spawn.type == "spawn") {
+        msg += "in ";
+      } else if (spawn.type == "lure") {
+        msg += "lured in ";
+      } else if (spawn.type == "nearby") {
+        msg += "near ";
       }
-      spawn.type = "spawn";
-    } else if (spawn.lure_info != undefined) {
-      spawn.encounter_id = spawn.lure_info.encounter_id;
-      spawn.pokemon_id = spawn.lure_info.active_pokemon_id;
-      spawn.expiration_timestamp_ms = spawn.lure_info.lure_expires_timestamp_ms;
-      spawn.type = "lure";
-    } else {
-      spawn.type = "nearby";
+
+      msg += location + " (close to " + closestNest + ")";
+
+      var lifespam = Math.floor((spawn.expiration_timestamp_ms - Date.now()) / 1000);
+      var lifespamMinutes = Math.floor(lifespam / 60);
+      var lifespamSeconds = lifespam % 60;
+
+      msg += " (" + lifespamMinutes + ":" + ((lifespamSeconds < 10) ? '0' : '') + lifespamSeconds + " remaining)" + tag;
+
+      $.post(SLACK_INCOMING_WEBHOOK_INTEGRATION_URL, "payload={\"text\" : " + JSON.stringify(msg) + "}");
+    }
+  }
+}
+
+function closestLocation(locations, spawn) {
+  var closestLocation = '';
+  var closestLocationDistance = Infinity;
+
+  for (var location in locations) {
+    var locationDistance = distance(locations[location], [spawn.latitude, spawn.longitude]);
+
+    if (closestLocationDistance > locationDistance) {
+      closestLocationDistance = locationDistance;
+      closestLocation = location;
     }
   }
 
-  // Prioritize pokemons with longest lifespam
-  result.sort(function(spawn1, spawn2) {
-    return spawn2.expiration_timestamp_ms - spawn1.expiration_timestamp_ms;
-  });
-
-  for (var i = 0; i < result.length; ++i) {
-    var spawn = result[i];
-    var lifespam = spawn.expiration_timestamp_ms - Date.now();
-
-    if (lifespam > 0) {
-      var wanted = false;
-      var tag;
-
-      if (wantedList.all.indexOf(spawn.pokemon_id) >= 0) {
-        wanted = true;
-        tag = ' <!here>';
-      } else if (wantedList[location].indexOf(spawn.pokemon_id) >= 0) {
-        wanted = true;
-        tag = '';
-      }
-
-      if (wanted && encounterList.indexOf(spawn.encounter_id) == -1) {
-        encounterList.push(spawn.encounter_id);
-        (function(location, encounterId, lifespam) {
-          setTimeout(function() {
-            var index = encounterList.indexOf(encounterId);
-            encounterList.splice(index, 1);
-          }, lifespam);
-        })(location, spawn.encounter_id, spawn.expiration_timestamp_ms - Date.now());
-
-        var emoji = ":pkm-" + spawn.pokemon_id.toLowerCase() + ":";
-        emoji = emoji.replace(/nidoran_female/, "nidoranf");
-        emoji = emoji.replace(/nidoran_male/, "nidoranm");
-        emoji = emoji.replace(/mr_mime/, "mrmime");
-
-        var closestNest = '';
-        var closestNestDistance = Infinity;
-
-        for (var nest in nests) {
-          var nestDistance = distance(nests[nest], [spawn.latitude, spawn.longitude]);
-
-          if (closestNestDistance > nestDistance) {
-            closestNestDistance = nestDistance;
-            closestNest = nest;
-          }
-        }
-
-        var msg = "<https://fastpokemap.se/#" + spawn.latitude + "," + spawn.longitude + "|" + emoji + "> found ";
-        if (spawn.type == "spawn") {
-          msg += "in ";
-        } else if (spawn.type == "lure") {
-          msg += "lured in ";
-        } else if (spawn.type == "nearby") {
-          msg += "near ";
-        }
-
-        msg += location + " (close to " + closestNest + ")";
-
-        var lifespam = Math.floor((spawn.expiration_timestamp_ms - Date.now()) / 1000);
-        var lifespamMinutes = Math.floor(lifespam / 60);
-        var lifespamSeconds = lifespam % 60;
-
-        msg += " (" + lifespamMinutes + ":" + ((lifespamSeconds < 10) ? '0' : '') + lifespamSeconds + " remaining)" + tag;
-
-        $.post(SLACK_INCOMING_WEBHOOK_INTEGRATION_URL, "payload={\"text\" : " + JSON.stringify(msg) + "}");
-      }
-    }
-  }
-
-  console.log("### Wait 2 minutes");
-
-  // Schedule the next scan.
-  setTimeout(function() {
-    scan(location);
-  }, 2 * 60 * 1000);
+  return closestLocation;
 }
 
 function distance(coords1, coords2) {
