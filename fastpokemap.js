@@ -502,7 +502,7 @@ function scanLocations() {
 }
 
 function scanLocation(location) {
-  $.getJSON(`https://api.fastpokemap.se/?lat=${coords[location][0]}&lng=${coords[location][1]}`, function(data) {
+  $.getJSON(`https://api.fastpokemap.se/?lat=${coords[location][0]}&lng=${coords[location][1]}`).done(function(data) {
     if (data && data.result && data.result.length >= 1) {
       console.log(`### Scan of ${location} succeeded!`);
 
@@ -529,6 +529,9 @@ function scanLocation(location) {
       console.log(`### Scan of ${location} failed!`);
       reScan(location, 500);
     }
+  }).fail(function() {
+    console.log(`### Scan of ${location} failed!`);
+    reScan(location, 500);
   });
 }
 
