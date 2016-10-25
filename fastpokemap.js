@@ -436,7 +436,7 @@ var wantedList = {
     //'SCYTHER',
     'JYNX',
     'ELECTABUZZ',
-    'MAGMAR',
+    //'MAGMAR',
     //'PINSIR',
     'TAUROS',
     'MAGIKARP',
